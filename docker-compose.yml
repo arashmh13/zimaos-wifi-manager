@@ -1,0 +1,50 @@
+services:
+  wifi-manager:
+    image: wifi-manager:latest
+    build: .
+    container_name: wifi-manager
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      WM_PORT: "8095"
+      WM_DATA: /DATA/wifi-manager
+      # Optional: set the initial admin password here. If unset, a random one is
+      # generated on first boot and saved to /DATA/wifi-manager/initial-password.txt
+      # (mode 0600). install.sh does this for you.
+      # WM_ADMIN_PASSWORD: "change-me"
+    volumes:
+      - /DATA/wifi-manager:/DATA/wifi-manager
+      # host NetworkManager (we drive it over the system bus, keyfiles live here)
+      - /etc/NetworkManager/system-connections:/etc/NetworkManager/system-connections
+      - /var/run/dbus:/var/run/dbus
+      # CasaOS/ZimaOS socket for dashboard tile installation (optional)
+      - /var/run/casaos/api.sock:/var/run/casaos/api.sock
+    restart: unless-stopped
+    labels:
+      # CasaOS/ZimaOS app-management adopts a container only when this label is
+      # present (see CasaOS-AppManagement service/container.go). Without it the
+      # container runs fine but never appears on the dashboard.
+      casaos: casaos
+      name: Wi-Fi Manager
+      web: "8095"
+      index: /
+      icon: http://localhost:8095/icon.svg
+      desc: Wi-Fi client + hotspot manager for ZimaOS
+    x-casaos:
+      icon: http://localhost:8095/icon.svg
+      title:
+        en_US: Wi-Fi Manager
+        fa_IR: مدیر وای‌فای
+      index: /
+      https_port: 0
+      port_map: 8095
+      term_exec: /bin/sh
+      order: 99
+      category: network
+      tip: >-
+        Wi-Fi client + hotspot manager for ZimaOS. Requires host networking and
+        NET_ADMIN to control the wireless adapter.

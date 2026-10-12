@@ -1,0 +1,12 @@
+# Shell scripts MUST be LF — a CRLF checkout breaks `sudo bash install.sh`
+# with "\r: command not found" on every Linux box.
+*.sh    text eol=lf
+Dockerfile text eol=lf
+*.py    text eol=lf
+*.js    text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.svg   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.md    text eol=lf

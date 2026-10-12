@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wi-Fi Manager — ZimaOS</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css?v=2">
+</head>
+<body>
+
+<!-- icon sprite -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5.5 12.5a10 10 0 0 1 13 0"/><path d="M9 16.4a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-hot" viewBox="0 0 24 24"><path d="M12 21c4.97 0 9-3.8 9-8.5S16.97 4 12 4 3 7.8 3 12.5c0 2.3 1 4.4 2.6 5.9"/><path d="M12 21c2.2 0 4-1.7 4-3.8 0-2.6-2.6-4.7-4-8.2-1.4 3.5-4 5.6-4 8.2 0 2.1 1.8 3.8 4 3.8z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-.7 4.5"/><path d="M20 4v7h-7"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.7-1.5"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+  <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M9.9 5.7A10.6 10.6 0 0 1 12 5.5c6.5 0 10 6.5 10 6.5a17.4 17.4 0 0 1-3.2 4"/><path d="M6.2 7.9A16.7 16.7 0 0 0 2 12s3.5 6.5 10 6.5a10.9 10.9 0 0 0 4-.75"/><path d="M9.9 10a2.8 2.8 0 0 0 4 4"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5"/><circle cx="12" cy="18" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v6M15 3v6"/><path d="M6 9h12v3a6 6 0 0 1-6 6 6 6 0 0 1-6-6z"/><path d="M12 18v3"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.5 6.5a8 8 0 1 0 11 0"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-act" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-steth" viewBox="0 0 24 24"><path d="M6 3v6a5 5 0 0 0 10 0V3"/><path d="M11 14v2a5 5 0 0 0 10 0v-2"/><circle cx="21" cy="12" r="2"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><svg><use href="#i-wifi"/></svg></span>
+    <span data-i18n="app_title">Wi-Fi Manager</span>
+    <span class="chip">ZimaOS</span>
+  </div>
+  <div class="pills">
+    <span class="pill" id="pillClient"><span class="dot" id="pdClient"></span><span data-i18n="pill_client">Client</span>: <b id="pvClient">…</b></span>
+    <span class="pill" id="pillHotspot"><span class="dot" id="pdHotspot"></span><span data-i18n="pill_hotspot">Hotspot</span>: <b id="pvHotspot">…</b></span>
+    <span class="pill" id="pillNet"><span class="dot" id="pdNet"></span><span data-i18n="pill_upstream">Upstream</span>: <b id="pvNet">…</b></span>
+  </div>
+  <button class="iconbtn langbtn" id="btnLang" title="Language">فارسی</button>
+  <button class="iconbtn" id="btnRefresh" title="Refresh"><svg><use href="#i-refresh"/></svg></button>
+</header>
+
+<div class="jobbar" id="jobBar"><span class="ring"></span><span id="jobText"></span></div>
+
+<main class="grid">
+  <!-- ============ LEFT: client mode ============ -->
+  <section class="col">
+
+    <div class="card">
+      <div class="card-h">
+        <svg><use href="#i-plug"/></svg>
+        <h2 data-i18n="h_connection">Current connection</h2>
+        <span class="sub" id="cSub"></span>
+      </div>
+      <div class="card-b" id="connBody">
+        <div id="connFull" style="display:none">
+          <div class="hero">
+            <div class="bars" id="cBars"><i></i><i></i><i></i><i></i></div>
+            <div class="hero-main">
+              <div class="hero-ssid" id="cSsid">—</div>
+              <div class="hero-sub">
+                <span id="cSignalTxt" class="mono">—</span>
+                <span class="tag" id="cSec">—</span>
+                <span class="tag blue" id="cChan">—</span>
+                <span class="tag grey" id="cBand">2.4 GHz</span>
+              </div>
+            </div>
+          </div>
+          <div class="kv">
+            <div class="k"><div class="lab" data-i18n="k_ip">IP address</div><div class="val mono" id="cIp">—</div></div>
+            <div class="k"><div class="lab" data-i18n="k_iface">Interface</div><div class="val mono" id="cIface">—</div></div>
+            <div class="k"><div class="lab" data-i18n="k_gw">Gateway</div><div class="val mono" id="cGw">—</div></div>
+            <div class="k"><div class="lab" data-i18n="k_rate">Link rate</div><div class="val mono" id="cRate">—</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn danger" id="btnDisconnect"><svg><use href="#i-power"/></svg><span data-i18n="b_disconnect">Disconnect</span></button>
+            <button class="btn" id="btnReconnect"><svg><use href="#i-refresh"/></svg><span data-i18n="b_reconnect">Reconnect</span></button>
+          </div>
+        </div>
+        <div class="empty" id="connEmpty">
+          <svg><use href="#i-wifi"/></svg>
+          <div class="t" data-i18n="c_notconn">Not connected to Wi-Fi</div>
+          <div class="d" data-i18n="c_notconn_d">Scan for networks below and pick one to join. Saved networks reconnect automatically.</div>
+          <button class="btn primary" id="btnReconnect2"><svg><use href="#i-refresh"/></svg><span data-i18n="b_reconnect_auto">Reconnect to saved network</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <svg><use href="#i-search"/></svg>
+        <h2 data-i18n="h_scan">Available networks</h2>
+        <span class="sub" id="scanTime"></span>
+        <button class="btn sm" id="btnScan"><svg><use href="#i-refresh"/></svg><span data-i18n="b_scan">Scan</span></button>
+      </div>
+      <div class="card-b tight">
+        <div class="netlist" id="scanList">
+          <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+        </div>
+        <div class="net" id="hiddenRow" style="margin:6px 4px;border:1px dashed var(--line2);background:transparent">
+          <div class="nmain"><div class="nssid"><svg class="lock"><use href="#i-search"/></svg><span data-i18n="h_hidden">Hidden network…</span></div></div>
+          <div class="inp" style="max-width:180px"><input id="hiddenSsid" data-i18n-ph="p_ssid" placeholder="SSID"></div>
+          <button class="btn sm primary" id="btnHidden" data-i18n="b_join">Join</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <svg><use href="#i-list"/></svg>
+        <h2 data-i18n="h_saved">Saved networks</h2>
+        <span class="sub" id="savedCount"></span>
+      </div>
+      <div class="card-b tight">
+        <div class="netlist" id="savedList"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ RIGHT: hotspot + diagnostics ============ -->
+  <section class="col">
+
+    <div class="card">
+      <div class="card-h">
+        <svg><use href="#i-hot"/></svg>
+        <h2 data-i18n="h_hotspot">Wi-Fi hotspot</h2>
+        <span class="sub" id="hsSub"></span>
+      </div>
+      <div class="card-b">
+        <div id="hsBanner"></div>
+
+        <!-- ACTIVE -->
+        <div id="hsActive" style="display:none">
+          <div class="hero">
+            <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+            <div class="hero-main">
+              <div class="hero-ssid" id="hsSsidView">—</div>
+              <div class="hero-sub">
+                <span class="tag" style="background:rgba(255,138,92,.14);border-color:rgba(255,138,92,.4);color:#ffbb96" data-i18n="t_broadcasting">Broadcasting</span>
+                <span class="tag blue" id="hsModeTag">—</span>
+                <span class="tag grey" id="hsChanTag">—</span>
+              </div>
+            </div>
+          </div>
+          <div class="kv">
+            <div class="k"><div class="lab" data-i18n="k_apip">Hotspot IP</div><div class="val mono" id="hsIp">—</div></div>
+            <div class="k"><div class="lab" data-i18n="k_apiface">AP interface</div><div class="val mono" id="hsIface">—</div></div>
+            <div class="k"><div class="lab" data-i18n="k_clients">Clients</div><div class="val" id="hsClients">0</div></div>
+            <div class="k"><div class="lab" data-i18n="k_upshare">Sharing via</div><div class="val mono" id="hsUp">—</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn danger" id="btnHsStop"><svg><use href="#i-power"/></svg><span data-i18n="b_stop_hotspot">Stop hotspot</span></button>
+          </div>
+        </div>
+
+        <!-- INACTIVE: form -->
+        <div id="hsForm">
+          <div class="banner info"><svg><use href="#i-info"/></svg><span data-i18n="hs_mode_hint">This adapter supports simultaneous client + access-point operation on one shared 2.4 GHz channel — your existing Wi-Fi connection stays online while the hotspot runs.</span></div>
+          <div class="field">
+            <label data-i18n="f_hssid">Hotspot name (SSID)</label>
+            <div class="inp"><input id="hsSsid" maxlength="32" placeholder="ZimaOS Hotspot"></div>
+          </div>
+          <div class="field">
+            <label data-i18n="f_hspass">Password</label>
+            <div class="inp">
+              <input id="hsPass" type="password" maxlength="63" placeholder="8–63 characters">
+              <button class="eye" id="hsPassEye" type="button"><svg><use href="#i-eye"/></svg></button>
+            </div>
+            <div class="hint" data-i18n="f_hspass_h">WPA2-AES secured. Never broadcast an open hotspot by default.</div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label data-i18n="f_band">Frequency band</label>
+              <div class="inp"><select id="hsBand" disabled>
+                <option>2.4 GHz</option>
+              </select></div>
+              <div class="hint warn" data-i18n="f_band_h">AR9227 adapter is 2.4 GHz-only — 5 GHz unavailable.</div>
+            </div>
+            <div class="field">
+              <label data-i18n="f_chan">Channel</label>
+              <div class="inp"><select id="hsChannel"></select></div>
+              <div class="hint" data-i18n="f_chan_h">Pinned to the client channel while connected.</div>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label data-i18n="f_sec">Security</label>
+              <div class="inp"><select id="hsSecurity">
+                <option value="wpa2">WPA2-AES (recommended)</option>
+                <option value="wpa3">WPA3-SAE</option>
+              </select></div>
+            </div>
+            <div class="field">
+              <label data-i18n="f_subnet">Client subnet / DHCP</label>
+              <div class="inp"><input id="hsSubnet" placeholder="10.42.0.1/24" spellcheck="false"></div>
+            </div>
+          </div>
+          <label class="checkline"><input type="checkbox" id="hsAutostart"><span data-i18n="f_autostart">Start hotspot automatically when this app starts</span></label>
+          <button class="btn primary wide" id="btnHsStart"><svg><use href="#i-hot"/></svg><span data-i18n="b_start_hotspot">Start hotspot</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="clientsCard">
+      <div class="card-h">
+        <svg><use href="#i-globe"/></svg>
+        <h2 data-i18n="h_clients">Connected clients</h2>
+        <span class="sub" id="clientsCount">0</span>
+      </div>
+      <div class="card-b tight">
+        <div id="clientsEmpty" class="empty" style="padding:16px">
+          <div class="d" data-i18n="cl_empty">No clients connected to the hotspot yet.</div>
+        </div>
+        <div class="tblwrap" id="clientsWrap" style="display:none">
+          <table>
+            <thead><tr>
+              <th data-i18n="th_dev">Device</th><th data-i18n="th_ip">IP</th>
+              <th data-i18n="th_sig">Signal</th><th data-i18n="th_time">Connected</th>
+            </tr></thead>
+            <tbody id="clientsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <svg><use href="#i-lock"/></svg>
+        <h2 data-i18n="h_security">Security</h2>
+        <span class="sub" data-i18n="sec_sub">HTTP Basic auth</span>
+      </div>
+      <div class="card-b">
+        <div class="hint" data-i18n="sec_hint" style="margin-bottom:10px">Change the dashboard password. It protects every API endpoint — pick something strong; it is stored only as a salted SHA-256 hash.</div>
+        <div class="field">
+          <label data-i18n="f_curpass">Current password</label>
+          <div class="inp"><input id="curPass" type="password" autocomplete="current-password"></div>
+        </div>
+        <div class="field">
+          <label data-i18n="f_newpass">New password</label>
+          <div class="inp"><input id="newPass" type="password" autocomplete="new-password" maxlength="64">
+            <button class="eye" id="newPassEye" type="button"><svg><use href="#i-eye"/></svg></button></div>
+        </div>
+        <div class="field">
+          <label data-i18n="f_repPass">Repeat new password</label>
+          <div class="inp"><input id="repPass" type="password" autocomplete="new-password" maxlength="64"></div>
+        </div>
+        <div class="errline" id="pwErr"><svg><use href="#i-alert"/></svg><span id="pwErrTxt"></span></div>
+        <button class="btn primary wide" id="btnChangePass"><svg><use href="#i-lock"/></svg><span data-i18n="b_changepass">Update password</span></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <svg><use href="#i-steth"/></svg>
+        <h2 data-i18n="h_diag">Diagnostics</h2>
+        <span class="sub" id="diagSub"></span>
+      </div>
+      <div class="card-b">
+        <div class="sec-title" data-i18n="d_caps">Hardware capabilities</div>
+        <div class="caps" id="capsChips"></div>
+        <div class="hr"></div>
+        <div class="sec-title" data-i18n="d_links">Interfaces & links</div>
+        <div class="kv" style="margin-top:0">
+          <div class="k"><div class="lab" data-i18n="k_mgmt">Management IP (eth0)</div><div class="val mono" id="dMgmt">—</div></div>
+          <div class="k"><div class="lab" data-i18n="k_default">Default route</div><div class="val mono" id="dDefault">—</div></div>
+          <div class="k"><div class="lab" data-i18n="k_internet">Internet</div><div class="val" id="dInternet">—</div></div>
+          <div class="k"><div class="lab" data-i18n="k_dns">DNS</div><div class="val mono" id="dDns">—</div></div>
+        </div>
+        <div class="hr"></div>
+        <details class="diag" id="diagDetails">
+          <summary class="sec-title" style="cursor:pointer" data-i18n="d_live">Live event log (secrets never logged)</summary>
+          <div id="logList" style="margin-top:10px;max-height:240px;overflow:auto"></div>
+          <div class="actions">
+            <button class="btn sm" id="btnDiag"><svg><use href="#i-steth"/></svg><span data-i18n="b_full_diag">Run full diagnostics</span></button>
+            <button class="btn sm ghost" id="btnCopyRollback"><span data-i18n="b_rollback">Copy rollback instructions</span></button>
+          </div>
+          <div id="diagOut" style="margin-top:10px"></div>
+        </details>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- connect modal -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <div class="modal-h">
+      <svg class="lock" id="mLock" style="width:16px;height:16px"><use href="#i-lock"/></svg>
+      <h3 id="mTitle">—</h3>
+      <button class="iconbtn" id="mClose" style="width:28px;height:28px"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-b">
+      <div class="errline" id="mErr"><svg><use href="#i-alert"/></svg><span id="mErrTxt"></span></div>
+      <div id="mPassWrap">
+        <div class="field">
+          <label data-i18n="f_password">Password</label>
+          <div class="inp">
+            <input id="mPass" type="password" maxlength="63" autocomplete="off" placeholder="••••••••">
+            <button class="eye" id="mEye" type="button"><svg><use href="#i-eye"/></svg></button>
+          </div>
+          <div class="hint" id="mHint" data-i18n="f_password_h">Stored securely by NetworkManager — never shown in logs.</div>
+        </div>
+      </div>
+      <div id="mOpenNote" class="banner warn" style="display:none">
+        <svg><use href="#i-alert"/></svg><span data-i18n="m_open_warn">This network is open (no password). Traffic is not encrypted.</span>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn ghost" id="mCancel" data-i18n="b_cancel">Cancel</button>
+      <button class="btn primary" id="mSubmit" data-i18n="b_connect">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script src="/app.js?v=2"></script>
+</body>
+</html>
