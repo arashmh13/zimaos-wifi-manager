@@ -22,22 +22,38 @@ ok()   { printf '\033[1;32m[wm]\033[0m %s\n' "$*"; }
 
 if docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER}"; then
   log "removing container ${CONTAINER}"
-  docker rm -f "${CONTAINER}" >/dev/null 2>&1 || true
-  ok "container removed"
+  if docker rm -f "${CONTAINER}" >/dev/null 2>&1; then
+    ok "container removed"
+  else
+    warn "failed to remove container ${CONTAINER}"
+  fi
 else
   log "container ${CONTAINER} not present"
 fi
 
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
-  log "removing image ${IMAGE}"
-  docker rmi "${IMAGE}" >/dev/null 2>&1 || true
-  ok "image removed"
+  # Refuse to rip an image out from under some other running container.
+  USERS="$(docker ps --format '{{.Names}} {{.Image}}' | awk -v img="${IMAGE}" \
+           '$2==img {print $1}')"
+  if [ -n "${USERS}" ]; then
+    warn "image ${IMAGE} is still used by: ${USERS} — leaving it in place"
+  else
+    log "removing image ${IMAGE}"
+    if docker rmi "${IMAGE}" >/dev/null 2>&1; then
+      ok "image removed"
+    else
+      warn "could not remove image ${IMAGE} (in use?)"
+    fi
+  fi
 fi
 
 if [ "${PURGE}" -eq 1 ]; then
-  log "purging ${DATA_DIR} (backups included)"
-  rm -rf "${DATA_DIR}"
-  ok "data removed"
+  if [ -d "${DATA_DIR}" ]; then
+    log "purging ${DATA_DIR} (backups included)"
+    rm -rf "${DATA_DIR}" && ok "data removed" || warn "could not remove ${DATA_DIR}"
+  else
+    log "${DATA_DIR} not present"
+  fi
 else
   log "keeping ${DATA_DIR} (use --purge to delete)"
 fi

@@ -16,3 +16,8 @@ initial-password.txt
 backup/
 logs/
 *.password
+
+# local scratch / packaging artifacts
+*.tgz
+*.tar.gz
+/tmp/

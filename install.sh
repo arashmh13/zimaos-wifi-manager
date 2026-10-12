@@ -26,7 +26,6 @@ CONTAINER="${WM_CONTAINER:-wifi-manager}"
 PORT="${WM_PORT:-8095}"
 DATA_DIR="${WM_DATA_DIR:-/DATA/wifi-manager}"
 SRC_DIR="${WM_SRC_DIR:-${DATA_DIR}/src}"
-CASAOS_PORT="${WM_CASAOS_PORT:-}"   # auto-detected when empty
 
 log()  { printf '\033[1;36m[wm]\033[0m %s\n' "$*"; }
 ok()   { printf '\033[1;32m[wm]\033[0m %s\n' "$*"; }
@@ -108,6 +107,15 @@ else
   log "generated a random admin password"
 fi
 mkdir -p "${DATA_DIR}"
+# Always persist the credentials here (root-only). The backend only writes this
+# file when IT generates the password, so the installer does it too — that way
+# `cat` after a fresh install always works, however the password was chosen.
+umask 077
+{
+  printf 'user: %s\n' "${ADMIN_USER}"
+  printf 'password: %s\n' "${GEN_PW}"
+} > "${PW_FILE}"
+chmod 600 "${PW_FILE}"
 
 # --------------------------------------------------------- 5. stop old container
 if docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER}"; then
@@ -115,7 +123,9 @@ if docker ps -a --format '{{.Names}}' | grep -qx "${CONTAINER}"; then
   docker rm -f "${CONTAINER}" >/dev/null 2>&1 || true
 fi
 
-# ------------------------------------------- 6. CasaOS/ZimaOS socket + tile port
+# ------------------------------------------- 6. CasaOS/ZimaOS + volume mounts
+# The dashboard tile is created purely from the container labels below, so the
+# CasaOS socket is NOT required — mount it only if it happens to exist.
 SOCK="/var/run/casaos/api.sock"
 MOUNTS=(
   -v "${DATA_DIR}:${DATA_DIR}"
@@ -124,23 +134,12 @@ MOUNTS=(
 )
 if [ -S "${SOCK}" ]; then
   MOUNTS+=(-v "${SOCK}:${SOCK}")
-  log "CasaOS socket found — dashboard tile will be installed"
-else
-  warn "no CasaOS socket at ${SOCK} — skipping tile (app still runs at :${PORT})"
 fi
-
-# ZimaOS/CasaOS app-management listens on a DYNAMIC port recorded in a file.
-detect_casaos_port() {
-  local p=""
-  for f in /var/run/casaos/app-management.url /run/casaos/app-management.url; do
-    [ -f "$f" ] || continue
-    p="$(grep -oE ':[0-9]+' "$f" 2>/dev/null | head -1 | tr -d ':' || true)"
-    [ -n "$p" ] && break
-  done
-  [ -n "$p" ] || return 1
-  # fall back to whatever is listening on 8080-ish if the file is stale
-  printf '%s' "$p"
-}
+if [ -f /var/run/casaos/app-management.url ] || [ -S "${SOCK}" ]; then
+  log "CasaOS/ZimaOS detected — dashboard tile will be created from labels"
+else
+  log "no CasaOS/ZimaOS detected — app will still be served on :${PORT}"
+fi
 
 # ------------------------------------------------------------------- 7. run
 log "starting container (host network, port ${PORT})"
@@ -179,41 +178,59 @@ done
 }
 ok "backend healthy on port ${PORT}"
 
-# ------------------------------------------- 9. adopt tile on ZimaOS dashboard
-# Container labels alone are enough on CasaOS >= 0.4.x. On older app-management
-# we also POST the install so the tile shows without a dashboard reload.
-if [ -S "${SOCK}" ]; then
-  AP="${CASAOS_PORT}"
-  [ -z "${AP}" ] && AP="$(detect_casaos_port || true)"
-  if [ -n "${AP}" ] && curl -fsS -m 3 "http://127.0.0.1:${AP}/" >/dev/null 2>&1; then
-    log "app-management reachable on port ${AP} — tile registered"
-  else
-    log "app-management port not detected (tile still installs from labels on next scan)"
-  fi
+# ------------------------------------------------- 9. verify + CasaOS tile status
+# NOTE: do NOT use `hostname -I` — ZimaOS ships a BusyBox-style hostname(1) that
+# lacks -I and exits 3, which would kill the script under `set -e`. Ask the
+# kernel for the source address of the default route instead.
+get_lan_ip() {
+  local ip
+  ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="src"){print $(i+1); exit}}')"
+  [ -n "$ip" ] || ip="$(ip -4 -o addr show scope global 2>/dev/null | awk '{split($4,a,"/"); print a[1]; exit}')"
+  [ -n "$ip" ] || ip="$(hostname -i 2>/dev/null | awk '{print $1}')"
+  printf '%s' "$ip"
+}
+
+# CasaOS/ZimaOS exposes its app-management port in a file, not always a socket.
+detect_mgmt_port() {
+  local f p
+  for f in /var/run/casaos/app-management.url /run/casaos/app-management.url; do
+    [ -f "$f" ] || continue
+    p="$(grep -oE ':[0-9]+' "$f" 2>/dev/null | head -1 | tr -d ':')"
+    [ -n "$p" ] && { printf '%s' "$p"; return 0; }
+  done
+  return 1
+}
+
+IP="$(get_lan_ip)"
+[ -n "${IP}" ] || IP="<box-ip>"
+
+if [ -S /var/run/casaos/api.sock ] || detect_mgmt_port >/dev/null 2>&1; then
+  tile_note="dashboard tile installed (labels) — see the ZimaOS home screen"
+else
+  tile_note="tile skipped (no CasaOS/ZimaOS detected) — open the URL directly"
 fi
 
 # --------------------------------------------------------------------- 10. report
-IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-[ -n "${IP}" ] || IP="<box-ip>"
+printf '\n\033[1;32m'
+cat <<EOF
+✓ Wi-Fi Manager installed
+EOF
+printf '\033[0m\n'
 
 cat <<EOF
-
-$(printf '\033[1;32m')✓ Wi-Fi Manager installed$(printf '\033[0m')
-
   URL          : http://${IP}:${PORT}/
   Username     : ${ADMIN_USER}
   Password     : ${GEN_PW}
 
-  Password file: ${PW_FILE}  (root-only, chmod 600)
+  Password file: ${PW_FILE}  (root-only)
   Logs         : docker logs -f ${CONTAINER}
   Data         : ${DATA_DIR}
 
-  Open the URL above → the ZimaOS dashboard also shows a
-  "Wi-Fi Manager" tile (auto-installed via container labels).
+  ${tile_note}
 
   IMPORTANT: change the password after first login
   (Security card → Change password).
 
   Upgrade : re-run this script
-  Remove  : bash ${SRC_DIR}/uninstall.sh
+  Remove  : bash ${SRC_DIR}/uninstall.sh --purge
 EOF
