@@ -17,6 +17,7 @@ PURGE=0
 
 log()  { printf '\033[1;36m[wm]\033[0m %s\n' "$*"; }
 ok()   { printf '\033[1;32m[wm]\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m[wm]\033[0m %s\n' "$*" >&2; }
 
 [ "$(id -u)" -eq 0 ] || exec sudo -E bash "$0" "$@"
 

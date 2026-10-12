@@ -1482,11 +1482,20 @@ def restore_hotspot_if_configured():
 
 
 def main():
+    # Recreate our data dirs if they vanished (e.g. the host dir was deleted or
+    # re-created empty while the container kept running). Never let a missing
+    # dir take the backend down — /api/ping must stay answering for the
+    # dashboard tile's healthcheck.
+    for _d in (BASE, os.path.join(BASE, "logs"), os.path.join(BASE, "data"),
+               os.path.join(BASE, "backup")):
+        try:
+            os.makedirs(_d, exist_ok=True)
+        except OSError:
+            pass
     try:
         os.makedirs(WEB, exist_ok=True)
     except OSError:
         pass
-    os.makedirs(os.path.join(BASE, "logs"), exist_ok=True)
     _load_auth()
     iface = wifi_iface()
     caps = get_caps()

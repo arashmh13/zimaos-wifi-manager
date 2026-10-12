@@ -141,6 +141,24 @@ else
   log "no CasaOS/ZimaOS detected — app will still be served on :${PORT}"
 fi
 
+# NOTE: do NOT use `hostname -I` here or later — ZimaOS ships a BusyBox-style
+# hostname(1) that lacks -I and exits 3, which would kill the script under
+# `set -e`. Ask the kernel for the source address of the default route instead.
+get_lan_ip() {
+  local ip
+  ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="src"){print $(i+1); exit}}')"
+  [ -n "$ip" ] || ip="$(ip -4 -o addr show scope global 2>/dev/null | awk '{split($4,a,"/"); print a[1]; exit}')"
+  [ -n "$ip" ] || ip="$(hostname -i 2>/dev/null | awk '{print $1}')"
+  printf '%s' "$ip"
+}
+
+# The tile icon URL is opened BY THE BROWSER, so it must be the box's real LAN
+# IP — "localhost" would resolve to the user's own PC and 404 the icon.
+IP="$(get_lan_ip)"
+[ -n "${IP}" ] || IP="<box-ip>"
+ICON_URL="http://${IP}:${PORT}/icon.svg"
+log "tile icon: ${ICON_URL}"
+
 # ------------------------------------------------------------------- 7. run
 log "starting container (host network, port ${PORT})"
 docker run -d \
@@ -158,7 +176,7 @@ docker run -d \
   --label "name=Wi-Fi Manager" \
   --label "web=${PORT}" \
   --label index=/ \
-  --label "icon=http://localhost:${PORT}/icon.svg" \
+  --label "icon=${ICON_URL}" \
   --label "desc=Wi-Fi client + hotspot manager for ZimaOS" \
   --restart unless-stopped \
   "${IMAGE}" >/dev/null
@@ -179,17 +197,6 @@ done
 ok "backend healthy on port ${PORT}"
 
 # ------------------------------------------------- 9. verify + CasaOS tile status
-# NOTE: do NOT use `hostname -I` — ZimaOS ships a BusyBox-style hostname(1) that
-# lacks -I and exits 3, which would kill the script under `set -e`. Ask the
-# kernel for the source address of the default route instead.
-get_lan_ip() {
-  local ip
-  ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="src"){print $(i+1); exit}}')"
-  [ -n "$ip" ] || ip="$(ip -4 -o addr show scope global 2>/dev/null | awk '{split($4,a,"/"); print a[1]; exit}')"
-  [ -n "$ip" ] || ip="$(hostname -i 2>/dev/null | awk '{print $1}')"
-  printf '%s' "$ip"
-}
-
 # CasaOS/ZimaOS exposes its app-management port in a file, not always a socket.
 detect_mgmt_port() {
   local f p
