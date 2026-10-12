@@ -103,7 +103,15 @@ elif [ -s "${PW_FILE}" ]; then
   [ -n "${GEN_PW}" ] && ADMIN_USER="${GEN_USER:-$ADMIN_USER}"
   log "keeping existing password from ${PW_FILE}"
 else
-  GEN_PW="$(head -c 32 /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 20)"
+  # Generate a password of EXACTLY 20 chars. Do NOT do
+  # `head -c 32 /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 20` — `tr -dc` keeps
+  # only ~24% of bytes (62/256 are alphanumeric), so that yields ~7 chars and
+  # sometimes as few as 4. Accumulate until we have enough, then truncate.
+  GEN_PW=""
+  while [ "${#GEN_PW}" -lt 20 ]; do
+    GEN_PW="${GEN_PW}$(head -c 256 /dev/urandom | tr -dc 'A-Za-z0-9' || true)"
+  done
+  GEN_PW="${GEN_PW:0:20}"
   log "generated a random admin password"
 fi
 mkdir -p "${DATA_DIR}"
